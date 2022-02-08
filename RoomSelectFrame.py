@@ -5,10 +5,12 @@ class RoomSelectFrame(wx.Frame):
     def __init__(self, parent):
         self.parent=parent
         self.show_extend=False
+        self.multi=False
+        self.roomids=[]
         self.ShowFrame(parent)
     
     def ShowFrame(self,parent):
-        rowNum=len(self.parent.rooms)//4+1
+        rowNum=(len(self.parent.rooms)+1)//4+1
         self.height=h=35+30*rowNum
         pos,ds=parent.GetPosition(),wx.DisplaySize()
         x,y=pos[0]+20,pos[1]+30
@@ -33,19 +35,37 @@ class RoomSelectFrame(wx.Frame):
             btn=wx.Button(panel, -1, v, pos=(10+col*95, 5+row*30), size=(90, 27), name=k)
             btn.Bind(wx.EVT_BUTTON,self.SelectRoom)
             btn.Bind(wx.EVT_RIGHT_DOWN,self.OnRightClick)
-            if k==self.parent.roomid:
+            if self.parent.roomids is None and k==self.parent.roomid:
                 btn.SetForegroundColour("BLUE")
                 btn.SetFocus()
                 unsaved_roomid=False
             i+=1
         btnAdd=wx.Button(panel, -1, "✚", pos=(10+i%4*95, 5+i//4*30), size=(90, 27))
         btnAdd.Bind(wx.EVT_BUTTON, self.Extend)
+        i+=1
+        btnMulti=wx.Button(panel, -1, "联动", pos=(10+i%4*95, 5+i//4*30), size=(90, 27))
+        btnMulti.Bind(wx.EVT_BUTTON, self.Multi)
+        if self.parent.roomids is not None:
+            btnMulti.SetForegroundColour("BLUE")
         if self.parent.roomid is not None:
             self.tcRoomId.SetValue(self.parent.roomid)
             if unsaved_roomid:
                 btnAdd.SetForegroundColour("BLUE")
                 btnAdd.SetFocus()
         self.Show()
+
+    def Multi(self,event):
+        if self.multi:
+            if self.roomids:
+                self.parent.SetRoomid(self.roomids[0],"联动%d"%len(self.roomids))
+                self.parent.roomids=self.roomids
+                self.Destroy()
+            else:
+                event.GetEventObject().SetForegroundColour("BLACK")
+                self.multi=False
+        else:
+            event.GetEventObject().SetForegroundColour("RED")
+            self.multi=True   
 
     def Extend(self,event):
         if self.show_extend:    return
@@ -61,10 +81,18 @@ class RoomSelectFrame(wx.Frame):
             self.Destroy()
         dlg.Destroy()
 
-    def SelectRoom(self,event):
+    def SelectRoom(self,event): 
         btn=event.GetEventObject()
-        self.parent.SetRoomid(btn.GetName(),btn.GetLabel())
-        self.Destroy()
+        if self.multi:
+            if btn.GetName() in self.roomids:
+                btn.SetForegroundColour("BLACK")
+                self.roomids.remove(btn.GetName())
+            else:
+                btn.SetForegroundColour("RED")
+                self.roomids.append(btn.GetName())
+        else:
+            self.parent.SetRoomid(btn.GetName(),btn.GetLabel())
+            self.Destroy()
 
     def GotoRoom(self,event):
         roomid=self.tcRoomId.GetValue().strip()

@@ -50,6 +50,7 @@ class LyricDanmu(wx.Frame):
         # B站配置参数
         self.cur_acc = 0
         self.roomid = None
+        self.roomids = None
         self.room_name = None
         self.colors={}
         self.modes={}
@@ -949,6 +950,7 @@ class LyricDanmu(wx.Frame):
 
 
     def SetRoomid(self,roomid,name):
+        self.roomids=None
         if name != "":
             self.room_name=name
             self.btnRoom1.SetLabel(name)
@@ -1147,9 +1149,17 @@ class LyricDanmu(wx.Frame):
                 msg = re.sub(k, v, msg)
         if len(msg) <= self.max_len:
             if len(msg+suf) <= self.max_len:
-                self.danmu_queue.append([self.roomid,msg+suf,src,seq])
+                if self.roomids is None:
+                    self.danmu_queue.append([self.roomid,msg+suf,src,seq])
+                else:
+                    for roomid in self.roomids:
+                        self.danmu_queue.append([roomid,msg+suf,src,seq])
             else:
-                self.danmu_queue.append([self.roomid,msg,src,seq])
+                if self.roomids is None:
+                    self.danmu_queue.append([self.roomid,msg,src,seq])
+                else:
+                    for roomid in self.roomids:
+                        self.danmu_queue.append([roomid,msg,src,seq])
             UIChange(self.btnClearQueue,label="清空 [%d]"%len(self.danmu_queue))#
             return
         spaceIdx = []
@@ -1167,7 +1177,11 @@ class LyricDanmu(wx.Frame):
                 if idx <= self.max_len: cutIdx = idx
         if cutIdx<self.max_len*0.5 and 1+len(msg[cutIdx:])+len(pre)>self.max_len:
              cutIdx = self.max_len
-        self.danmu_queue.append([self.roomid,msg[:cutIdx],src,seq])
+        if self.roomids is None:
+            self.danmu_queue.append([self.roomid,msg[:cutIdx],src,seq])
+        else:
+            for roomid in self.roomids:
+                self.danmu_queue.append([roomid,msg[:cutIdx],src,seq])
         UIChange(self.btnClearQueue,label="清空 [%d]"%len(self.danmu_queue))#
         if msg[cutIdx:] in [")","）","」","】","\"","”"]:  return
         self.SendSplitDanmu(pre + "…" + msg[cutIdx:],pre,suf,src,seq)
